@@ -1,0 +1,32 @@
+{
+	"name": "schematica-api-docs-server",
+	"version": "1.0.0",
+	"description": "the backend for Schematica API docs platform",
+	"main": "src/server.js",
+	"scripts": {
+		"start": "node src/server.js",
+		"dev": "nodemon src/server.js",
+		"prepare": "node scripts/hash-existing-passwords.js"
+	},
+	"keywords": [
+		"Schematica",
+		"Swagger",
+		"API Documentation"
+	],
+	"author": "Amir Zouerami",
+	"license": "MIT",
+	"type": "commonjs",
+	"dependencies": {
+		"bcryptjs": "^3.0.2",
+		"cors": "^2.8.5",
+		"dotenv": "^16.5.0",
+		"express": "^4.21.2",
+		"jsonwebtoken": "^9.0.2",
+		"uuid": "^11.1.0"
+	},
+	"devDependencies": {
+		"@types/uuid": "^10.0.0",
+		"eslint": "^8.57.1",
+		"nodemon": "^3.1.10"
+	}
+}
