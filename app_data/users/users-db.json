@@ -1,0 +1,28 @@
+[
+  {
+    "id": "1",
+    "username": "amir.zouerami",
+    "password": "$2b$10$.N89DXoPtwwgW3nHbrNV9.Rr.nUlTgVLnJvIqW3RFd8SjvEnBX.yK",
+    "role": "backend",
+    "profileImage": "/profile-pictures/amir.zouerami.png",
+    "accessList": {
+      "read": true,
+      "write": true,
+      "update": true,
+      "delete": true
+    }
+  },
+  {
+    "id": "2",
+    "username": "brooklyn.lee",
+    "password": "$2b$10$fBUycb7WiVnev3eNjwytyeLn1QbzwMhWI/cR1Q0kOrSHdogoWKz9i",
+    "role": "UI",
+    "profileImage": "/profile-pictures/brooklyn.lee.png",
+    "accessList": {
+      "read": true,
+      "write": false,
+      "update": false,
+      "delete": false
+    }
+  }
+]
