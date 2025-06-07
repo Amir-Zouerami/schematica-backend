@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const config = require('../config');
+const { getProjectOpenApiPath } = require('./openApiInlineUtils');
 
 const usersDBPath = path.join(__dirname, '..', '..', 'app_data', 'users', 'users-db.json');
 
@@ -7,7 +9,8 @@ const readUsersDB = () => {
 	try {
 		const jsonData = fs.readFileSync(usersDBPath, 'utf-8');
 		return JSON.parse(jsonData);
-	} catch (error) {
+	}
+	catch (error) {
 		console.error('Error reading users-db.json:', error);
 
 		if (error.code === 'ENOENT') {
@@ -22,7 +25,8 @@ const writeUsersDB = data => {
 	try {
 		fs.writeFileSync(usersDBPath, JSON.stringify(data, null, 2), 'utf-8');
 		console.log('users-db.json has been updated.');
-	} catch (error) {
+	}
+	catch (error) {
 		console.error('Error writing to users-db.json:', error);
 		throw error;
 	}
@@ -34,7 +38,8 @@ const readOpenApiFile = async projectId => {
 	try {
 		const content = await fs.readFile(filePath, 'utf-8');
 		return JSON.parse(content);
-	} catch (error) {
+	}
+	catch (error) {
 		if (error.code === 'ENOENT') throw new Error('OpenAPI file not found.');
 		throw new Error('Could not read or parse OpenAPI file.');
 	}
@@ -48,7 +53,9 @@ const writeOpenApiFile = async (projectId, specData) => {
 const findProjectByName = async nameToFind => {
 	try {
 		const files = await fs.readdir(config.projectsPath);
-		const metaFiles = files.filter(file => file.endsWith('.meta.json'));
+		const metaFiles = files.filter(file => {
+			return file.endsWith('.meta.json'); 
+		});
 
 		for (const metaFile of metaFiles) {
 			const filePath = path.join(config.projectsPath, metaFile);
@@ -60,11 +67,13 @@ const findProjectByName = async nameToFind => {
 				if (project.name.toLowerCase() === nameToFind.toLowerCase()) {
 					return project;
 				}
-			} catch (e) {
+			}
+			catch (e) {
 				console.warn(`Could not read or parse project metadata file ${metaFile} during name check: ${e.message}`);
 			}
 		}
-	} catch (e) {
+	}
+	catch (e) {
 		console.error(`Error reading projects directory for name check: ${e.message}`);
 		throw e;
 	}
