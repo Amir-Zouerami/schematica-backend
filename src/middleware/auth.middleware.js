@@ -2,13 +2,13 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const { readUsersDB } = require('../utils/general');
 
-const usersDB = readUsersDB();
-
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
 	const authHeader = req.headers['authorization'];
 	const token = authHeader && authHeader.split(' ')[1];
 
-	if (token == null) {
+	const usersDB = await readUsersDB();
+
+	if (token === null) {
 		console.log('Auth middleware: No token provided');
 		return res.status(401).json({ message: 'No token provided' });
 	}
@@ -25,6 +25,7 @@ const authenticateToken = (req, res, next) => {
 			return res.status(403).json({ message: 'User not found for token' });
 		}
 
+		// eslint-disable-next-line
 		const { password, ...userWithoutPassword } = userFromToken;
 		req.user = userWithoutPassword;
 		next();

@@ -1,11 +1,11 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
-const { readUsersDB, writeUsersDB } = require('../utils/general');
+const { writeUsersDB, readUsersDB } = require('../utils/general');
 
 const saltRounds = Number(process.env.SALT_ROUNDS) || 10;
 
-const login = (req, res) => {
+const login = async (req, res) => {
 	const { username, password } = req.body;
 	console.log(`Login attempt for username: ${username}`);
 
@@ -13,7 +13,7 @@ const login = (req, res) => {
 		return res.status(400).json({ message: 'Username and password are required' });
 	}
 
-	const usersDB = readUsersDB();
+	const usersDB = await readUsersDB();
 	const user = usersDB.find(u => u.username === username);
 
 	if (!user) {
@@ -41,6 +41,7 @@ const login = (req, res) => {
 
 		const token = jwt.sign(userPayloadForToken, config.jwtSecret, { expiresIn: process.env.JWT_EXP_TIME || '1h' });
 
+		// eslint-disable-next-line
 		const { password: _, ...userWithoutPassword } = user;
 
 		console.log(`Login successful for ${username}. Token generated.`);
@@ -51,21 +52,23 @@ const login = (req, res) => {
 	});
 };
 
-const getMe = (req, res) => {
+const getMe = async (req, res) => {
 	console.log(`/api/auth/me called for user: ${req.user.username}`);
 
-	const usersDB = readUsersDB();
+	const usersDB = await readUsersDB();
 	const currentUserData = usersDB.find(u => u.id === req.user.id);
 
 	if (!currentUserData) {
 		return res.status(404).json({ message: 'User data not found for authenticated user.' });
 	}
+	
+	// eslint-disable-next-line
 	const { password: _, ...userWithoutPassword } = currentUserData;
 
 	res.json({ user: userWithoutPassword });
 };
 
-const updatePassword = (req, res) => {
+const updatePassword = async (req, res) => {
 	const { currentPassword, newPassword } = req.body;
 	const userId = req.user.id;
 
@@ -82,7 +85,7 @@ const updatePassword = (req, res) => {
 		return res.status(400).json({ message: 'New password cannot be the same as the current password' });
 	}
 
-	const usersDB = readUsersDB();
+	const usersDB = await readUsersDB();
 	const userIndex = usersDB.findIndex(u => u.id === userId);
 
 	if (userIndex === -1) {
@@ -103,7 +106,7 @@ const updatePassword = (req, res) => {
 			return res.status(400).json({ message: 'Incorrect current password' });
 		}
 
-		bcrypt.hash(newPassword, saltRounds, (hashErr, hashedPassword) => {
+		bcrypt.hash(newPassword, saltRounds, async (hashErr, hashedPassword) => {
 			if (hashErr) {
 				console.error('Error hashing new password:', hashErr);
 				return res.status(500).json({ message: 'Internal server error during password update' });
@@ -112,7 +115,7 @@ const updatePassword = (req, res) => {
 			usersDB[userIndex].password = hashedPassword;
 
 			try {
-				writeUsersDB(usersDB);
+				await writeUsersDB(usersDB);
 				console.log(`Password updated successfully for user ID ${userId} --> ${req.user.username}`);
 				res.json({ message: 'Password updated successfully' });
 			} catch (writeError) {

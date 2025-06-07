@@ -3,15 +3,15 @@ const fs = require('fs').promises;
 const config = require('../config');
 const { v4: uuidv4 } = require('uuid');
 const { inlineAllComponents } = require('../utils/openApiInlineUtils');
-const { readUsersDB, findProjectByName, readOpenApiFile, writeOpenApiFile } = require('../utils/general');
 
-const usersDB = readUsersDB();
-if (!usersDB || !Array.isArray(usersDB)) {
-	console.error("Critical: Could not load or parse users-db.json, or it's not an array. Path: ../data/users-db.json");
-}
-
-const getProjectMetaPath = projectId => path.join(config.projectsPath, `${projectId}.meta.json`);
-const getProjectOpenApiPath = projectId => path.join(config.projectsPath, `${projectId}.openapi.json`);
+const {
+	readUsersDB,
+	findProjectByName,
+	readOpenApiFile,
+	writeOpenApiFile,
+	getProjectMetaPath,
+	getProjectOpenApiPath,
+} = require('../utils/general');
 
 const createProject = async (req, res) => {
 	try {
@@ -32,6 +32,7 @@ const createProject = async (req, res) => {
 		const projectId = uuidv4();
 		const now = new Date().toISOString();
 
+		const usersDB = await readUsersDB();
 		const creator = usersDB.find(user => user.id === userId);
 		const creatorUsername = creator ? creator.username : 'Unknown User';
 
@@ -105,7 +106,7 @@ const getProjects = async (_req, res) => {
 				}
 			});
 
-		let projects = (await Promise.all(projectPromises)).filter(p => p !== null);
+		const projects = (await Promise.all(projectPromises)).filter(p => p !== null);
 		projects.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
 		res.json(projects);

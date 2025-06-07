@@ -1,10 +1,12 @@
 const getReferencedObject = (ref, rootSpec) => {
-	if (!ref || !ref.startsWith('#/')) return null;
+	if (!ref || !ref.startsWith('#/')) {
+		return null;
+	}
 	const path = ref.substring(2).split('/');
 	let current = rootSpec;
 
 	for (const segment of path) {
-		if (current && typeof current === 'object' && current.hasOwnProperty(segment)) {
+		if (current && typeof current === 'object' && Object.prototype.hasOwnProperty.call(current, segment)) {
 			current = current[segment];
 		} else {
 			return null;
