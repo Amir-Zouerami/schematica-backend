@@ -36,7 +36,48 @@ function inlineRefsRecursive(currentObject, rootSpec, visitedRefs = new Set()) {
 		const refPath = currentObject.$ref;
 
 		if (visitedRefs.has(refPath)) {
-			console.warn(`[Inliner] Circular reference detected for ${refPath}, returning ref itself.`);
+			console.warn(`[Inliner] Circular reference detected for ${refPath}. Attempting to find a plausible alternative.`);
+
+			const pathSegments = refPath.split('/');
+			if (pathSegments.length === 4 && pathSegments[1] === 'components') {
+				const originalType = pathSegments[2];
+				const componentName = pathSegments[3];
+
+				// all possible component types to search through.
+				const alternativeComponentTypes = [
+					'schemas',
+					'responses',
+					'examples',
+					'parameters',
+					'requestBodies',
+					'headers',
+					'links',
+					'callbacks',
+				];
+
+				for (const newType of alternativeComponentTypes) {
+					// skipping the original type that caused the circular dependency.
+					if (newType === originalType) {
+						continue;
+					}
+
+					const newRefPath = `#/components/${newType}/${componentName}`;
+					const alternativeObject = getReferencedObject(newRefPath, rootSpec);
+
+					if (alternativeObject) {
+						console.log(
+							`[Inliner] Found a plausible alternative for "${componentName}" in "${newType}". Inlining ${newRefPath} instead.`,
+						);
+
+						return inlineRefsRecursive(structuredClone(alternativeObject), rootSpec, new Set());
+					}
+				}
+			}
+
+			console.error(
+				`[Inliner] Could not resolve circular reference for ${refPath} and no alternatives were found. Returning ref itself.`,
+			);
+
 			return { $ref: refPath, _circular: true };
 		}
 
