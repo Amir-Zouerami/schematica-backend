@@ -1,28 +1,18 @@
 [
-  {
-    "id": "1",
-    "username": "amir.zouerami",
-    "password": "$2b$10$.N89DXoPtwwgW3nHbrNV9.Rr.nUlTgVLnJvIqW3RFd8SjvEnBX.yK",
-    "role": "backend",
-    "profileImage": "/profile-pictures/amir.zouerami.png",
-    "accessList": {
-      "read": true,
-      "write": true,
-      "update": true,
-      "delete": true
-    }
-  },
-  {
-    "id": "2",
-    "username": "brooklyn.lee",
-    "password": "$2b$10$fBUycb7WiVnev3eNjwytyeLn1QbzwMhWI/cR1Q0kOrSHdogoWKz9i",
-    "role": "UI",
-    "profileImage": "/profile-pictures/brooklyn.lee.png",
-    "accessList": {
-      "read": true,
-      "write": false,
-      "update": false,
-      "delete": false
-    }
-  }
+	{
+		"id": "1",
+		"username": "amir.zouerami",
+		"password": "$2b$10$PZJOg.P9w/Ir7dDH92NvjuP7/Cvp3D/r8Mrg1ILWxksy6u3owTIs.",
+		"role": "admin",
+		"teams": ["backend", "leadership"],
+		"profileImage": "/profile-pictures/amir.zouerami.png"
+	},
+	{
+		"id": "2",
+		"username": "brooklyn.lee",
+		"password": "$2b$10$fBUycb7WiVnev3eNjwytyeLn1QbzwMhWI/cR1Q0kOrSHdogoWKz9i",
+		"role": "member",
+		"teams": ["UI"],
+		"profileImage": "/profile-pictures/brooklyn.lee.png"
+	}
 ]

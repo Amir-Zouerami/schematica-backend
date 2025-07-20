@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
-const { readUsersDB } = require('../utils/general');
+const { readUsersDB, getProjectMetaPath, userIsProjectOwner } = require('../utils/general');
+const fs = require('fs').promises;
 
 const authenticateToken = async (req, res, next) => {
 	const authHeader = req.headers['authorization'];
@@ -32,12 +33,32 @@ const authenticateToken = async (req, res, next) => {
 	});
 };
 
-const authorizeBackendRole = (req, res, next) => {
-	if (req.user && req.user.role === 'backend') {
-		next();
-	} else {
-		res.status(403).json({ message: 'Forbidden: You do not have permission to perform this action.' });
+const authorizeProjectOwner = async (req, res, next) => {
+	try {
+		const { projectId } = req.params;
+
+		if (!projectId) {
+			return res.status(400).json({ message: 'Project ID is missing from request.' });
+		}
+
+		const metaFilePath = getProjectMetaPath(projectId);
+		const metaContent = await fs.readFile(metaFilePath, 'utf-8');
+		const projectMeta = JSON.parse(metaContent);
+
+		if (userIsProjectOwner(req.user, projectMeta)) {
+			req.projectMeta = projectMeta;
+			next();
+		} else {
+			res.status(403).json({ message: 'Forbidden: You do not have permission to perform this action.' });
+		}
+	} catch (error) {
+		if (error.code === 'ENOENT') {
+			res.status(404).json({ message: 'Project not found.' });
+		} else {
+			console.error('Error in authorizeProjectOwner middleware:', error);
+			res.status(500).json({ message: 'Server error during authorization.' });
+		}
 	}
 };
 
-module.exports = { authenticateToken, authorizeBackendRole };
+module.exports = { authenticateToken, authorizeProjectOwner };

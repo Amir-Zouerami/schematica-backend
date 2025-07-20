@@ -3,6 +3,7 @@ const fs = require('fs').promises;
 const config = require('../config');
 const { v4: uuidv4 } = require('uuid');
 const { inlineAllComponents } = require('../utils/openApiInlineUtils');
+const { userCanViewProject, userIsProjectOwner } = require('../utils/general');
 
 const {
 	readUsersDB,
@@ -14,6 +15,10 @@ const {
 } = require('../utils/general');
 
 const createProject = async (req, res) => {
+	if (config.projectCreationPolicy === 'ADMIN_ONLY' && req.user.role !== 'admin') {
+		return res.status(403).json({ message: 'You do not have permission to create new projects.' });
+	}
+
 	try {
 		const { name, description, serverUrl, links } = req.body;
 		const userId = req.user.id;
@@ -42,6 +47,20 @@ const createProject = async (req, res) => {
 			description: description || '',
 			serverUrl: serverUrl || '',
 			links: links || [],
+			access: {
+				owners: {
+					users: [userId],
+					teams: [],
+				},
+				allow: {
+					users: [],
+					teams: [],
+				},
+				deny: {
+					users: [],
+				},
+			},
+
 			createdBy: creatorUsername,
 			createdAt: now,
 			updatedAt: now,
@@ -77,29 +96,16 @@ const createProject = async (req, res) => {
 	}
 };
 
-const getProjects = async (_req, res) => {
+const getProjects = async (req, res) => {
 	try {
 		const files = await fs.readdir(config.projectsPath);
-
 		const projectPromises = files
 			.filter(file => file.endsWith('.meta.json'))
 			.map(async file => {
 				const filePath = path.join(config.projectsPath, file);
-
 				try {
 					const content = await fs.readFile(filePath, 'utf-8');
-					const d = JSON.parse(content);
-
-					return {
-						id: d.id,
-						name: d.name,
-						description: d.description || '',
-						serverUrl: d.serverUrl || '',
-						links: d.links || [],
-						createdBy: d.createdBy,
-						createdAt: d.createdAt,
-						updatedAt: d.updatedAt,
-					};
+					return JSON.parse(content);
 				} catch (e) {
 					console.warn(`Could not read or parse project metadata file ${file}: ${e.message}`);
 					return null;
@@ -107,14 +113,29 @@ const getProjects = async (_req, res) => {
 			});
 
 		const projects = (await Promise.all(projectPromises)).filter(p => p !== null);
-		projects.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-		res.json(projects);
+		const visibleProjects = projects.filter(project => userCanViewProject(req.user, project));
+
+		const finalProjects = visibleProjects.map(data => ({
+			id: data.id,
+			name: data.name,
+			description: data.description || '',
+			serverUrl: data.serverUrl || '',
+			links: data.links || [],
+			createdBy: data.createdBy,
+			createdAt: data.createdAt,
+			updatedAt: data.updatedAt,
+		}));
+
+		finalProjects.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+		res.json(finalProjects);
 	} catch (error) {
 		console.error('Error listing projects:', error);
 
 		if (error.code === 'ENOENT' && error.path === config.projectsPath) {
 			console.warn('Projects directory not found, returning empty list.');
+
 			res.json([]);
 		} else {
 			res.status(500).json({ message: 'Failed to list projects', error: error.message });
@@ -135,16 +156,7 @@ const updateProject = async (req, res) => {
 	const metaFilePath = getProjectMetaPath(projectId);
 
 	try {
-		let existingProjectMeta;
-		try {
-			const content = await fs.readFile(metaFilePath, 'utf-8');
-			existingProjectMeta = JSON.parse(content);
-		} catch (error) {
-			if (error.code === 'ENOENT') {
-				return res.status(404).json({ message: 'Project not found.' });
-			}
-			throw error;
-		}
+		const existingProjectMeta = req.projectMeta;
 
 		if (existingProjectMeta.name.toLowerCase() !== trimmedName.toLowerCase()) {
 			const projectWithNewName = await findProjectByName(trimmedName);
@@ -158,6 +170,7 @@ const updateProject = async (req, res) => {
 			console.warn(
 				`OCC Conflict on project update ${projectId}. Client knew ${lastKnownUpdatedAt}, server has ${existingProjectMeta.updatedAt}`,
 			);
+
 			return res.status(409).json({
 				message: 'This project has been updated by someone else since you started editing.',
 				serverUpdatedAt: existingProjectMeta.updatedAt,
@@ -170,6 +183,7 @@ const updateProject = async (req, res) => {
 			description: description === undefined ? existingProjectMeta.description : description,
 			serverUrl: serverUrl === undefined ? existingProjectMeta.serverUrl : serverUrl,
 			links: links === undefined ? existingProjectMeta.links : links,
+			access: req.body.access === undefined ? existingProjectMeta.access : req.body.access,
 			updatedAt: now,
 		};
 
@@ -228,6 +242,7 @@ const updateProject = async (req, res) => {
 const deleteProject = async (req, res) => {
 	try {
 		const { projectId } = req.params;
+
 		if (!projectId) {
 			return res.status(400).json({ message: 'Project ID is required.' });
 		}
@@ -261,27 +276,36 @@ const deleteProject = async (req, res) => {
 const getProjectById = async (req, res) => {
 	try {
 		const { projectId } = req.params;
+
 		if (!projectId) {
 			return res.status(400).json({ message: 'Project ID is required.' });
 		}
+
 		const metaFilePath = getProjectMetaPath(projectId);
+
 		try {
 			const content = await fs.readFile(metaFilePath, 'utf-8');
-			const d = JSON.parse(content);
+			const project = JSON.parse(content);
+
+			if (!userCanViewProject(req.user, project)) {
+				return res.status(404).json({ message: 'Project not found.' });
+			}
+
 			res.json({
-				id: d.id,
-				name: d.name,
-				description: d.description || '',
-				serverUrl: d.serverUrl || '',
-				links: d.links || [],
-				createdBy: d.createdBy,
-				createdAt: d.createdAt,
-				updatedAt: d.updatedAt,
+				id: project.id,
+				name: project.name,
+				description: project.description || '',
+				serverUrl: project.serverUrl || '',
+				links: project.links || [],
+				createdBy: project.createdBy,
+				createdAt: project.createdAt,
+				updatedAt: project.updatedAt,
 			});
 		} catch (error) {
 			if (error.code === 'ENOENT') {
 				return res.status(404).json({ message: 'Project not found.' });
 			}
+
 			throw error;
 		}
 	} catch (error) {
@@ -293,8 +317,22 @@ const getProjectById = async (req, res) => {
 const getProjectOpenApiSpec = async (req, res) => {
 	try {
 		const { projectId } = req.params;
+
 		if (!projectId) {
 			return res.status(400).json({ message: 'Project ID is required.' });
+		}
+
+		const metaFilePath = getProjectMetaPath(projectId);
+
+		try {
+			const metaContent = await fs.readFile(metaFilePath, 'utf-8');
+			const projectMeta = JSON.parse(metaContent);
+
+			if (!userCanViewProject(req.user, projectMeta)) {
+				return res.status(404).json({ message: 'Project not found.' });
+			}
+		} catch (metaError) {
+			return res.status(404).json({ message: 'Project not found.' });
 		}
 
 		const openApiFilePath = getProjectOpenApiPath(projectId);
@@ -302,6 +340,7 @@ const getProjectOpenApiSpec = async (req, res) => {
 		try {
 			const content = await fs.readFile(openApiFilePath, 'utf-8');
 			const openApiSpec = JSON.parse(content);
+
 			res.json(openApiSpec);
 		} catch (error) {
 			if (error.code === 'ENOENT') {
@@ -330,19 +369,7 @@ const updateOpenApiSpec = async (req, res) => {
 
 	try {
 		const metaFilePath = getProjectMetaPath(projectId);
-		let projectMeta;
-
-		try {
-			const metaContent = await fs.readFile(metaFilePath, 'utf-8');
-			projectMeta = JSON.parse(metaContent);
-		} catch (metaReadError) {
-			if (metaReadError.code === 'ENOENT') {
-				return res.status(404).json({ message: 'Project metadata not found. Cannot verify version.' });
-			}
-
-			console.error(`Error reading project metadata for OCC check (project ${projectId}):`, metaReadError);
-			return res.status(500).json({ message: 'Server error: Could not read project metadata for version check.' });
-		}
+		const projectMeta = req.projectMeta;
 
 		// --- OPTIMISTIC CONCURRENCY CHECK ---
 		if (lastKnownProjectUpdatedAt && projectMeta.updatedAt !== lastKnownProjectUpdatedAt) {
@@ -504,6 +531,7 @@ const addEndpoint = async (req, res) => {
 	if (!endpointPath || !endpointMethod || !operationFromRequest) {
 		return res.status(400).json({ message: 'Missing required fields: path, method, or operation data.' });
 	}
+
 	const lowerMethod = endpointMethod.toLowerCase();
 
 	try {
@@ -703,13 +731,28 @@ const addEndpointNote = async (req, res) => {
 	}
 
 	const firstSlashIndex = methodPlusPath.indexOf('/');
+
 	if (firstSlashIndex === -1 || firstSlashIndex === 0 || firstSlashIndex === methodPlusPath.length - 1) {
 		return res.status(400).json({ message: 'Invalid endpoint format in URL. Expected :method/:path (e.g., get/api/users)' });
 	}
+
 	const method = methodPlusPath.substring(0, firstSlashIndex).toLowerCase();
 	const path = '/' + methodPlusPath.substring(firstSlashIndex + 1);
 
 	try {
+		const metaFilePath = getProjectMetaPath(projectId);
+
+		try {
+			const metaContent = await fs.readFile(metaFilePath, 'utf-8');
+			const projectMeta = JSON.parse(metaContent);
+
+			if (!userCanViewProject(req.user, projectMeta)) {
+				return res.status(404).json({ message: 'Project not found.' });
+			}
+		} catch (metaError) {
+			return res.status(404).json({ message: 'Project not found.' });
+		}
+
 		const spec = await readOpenApiFile(projectId);
 		if (!spec.paths || !spec.paths[path] || !spec.paths[path][method]) {
 			return res.status(404).json({ message: `Endpoint ${method.toUpperCase()} ${path} not found.` });
@@ -759,6 +802,21 @@ const deleteEndpointNote = async (req, res) => {
 	const path = '/' + methodPlusPath.substring(firstSlashIndex + 1);
 
 	try {
+		let projectMeta;
+		const metaFilePath = getProjectMetaPath(projectId);
+
+		try {
+			const metaContent = await fs.readFile(metaFilePath, 'utf-8');
+			projectMeta = JSON.parse(metaContent);
+
+			// A user must at least be able to view the project to delete a note.
+			if (!userCanViewProject(req.user, projectMeta)) {
+				return res.status(404).json({ message: 'Project not found.' });
+			}
+		} catch (metaError) {
+			return res.status(404).json({ message: 'Project not found.' });
+		}
+
 		const spec = await readOpenApiFile(projectId);
 		if (!spec.paths || !spec.paths[path] || !spec.paths[path][method]) {
 			return res.status(404).json({ message: `Endpoint ${method.toUpperCase()} ${path} not found.` });
@@ -774,8 +832,11 @@ const deleteEndpointNote = async (req, res) => {
 		}
 
 		const noteToDelete = endpointOperation['x-app-metadata'].notes[noteIndex];
-		if (req.user.role === 'client' && noteToDelete.createdBy !== req.user.username) {
-			console.warn(`unauthorized attempt to delete note!`, { actor: req.user.username });
+		const isOwner = userIsProjectOwner(req.user, projectMeta);
+		const isAuthor = noteToDelete.createdBy === req.user.username;
+
+		if (!isAuthor && !isOwner) {
+			console.warn(`Unauthorized attempt to delete note!`, { actor: req.user.username });
 			return res.status(403).json({ message: 'Forbidden: You can only delete your own notes.' });
 		}
 

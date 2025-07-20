@@ -16,6 +16,10 @@ const config = {
 	projectsPath: path.join(__dirname, '..', '..', 'app_data', 'projects'),
 
 	inlineComponentsOnSave: process.env.OPENAPI_INLINE_COMPONENTS_ON_SAVE === 'true',
+
+	// 'AUTHENTICATED': Any logged-in user can create a project.
+	// 'ADMIN_ONLY': Only users with the 'admin' role can create projects.
+	projectCreationPolicy: process.env.PROJECT_CREATION_POLICY || 'AUTHENTICATED',
 };
 
 if (!config.jwtSecret) {

@@ -36,7 +36,7 @@ const login = async (req, res) => {
 			userId: user.id,
 			username: user.username,
 			role: user.role,
-			accessList: user.accessList,
+			teams: user.teams || [],
 		};
 
 		const token = jwt.sign(userPayloadForToken, config.jwtSecret, { expiresIn: process.env.JWT_EXP_TIME || '1h' });
@@ -61,11 +61,28 @@ const getMe = async (req, res) => {
 	if (!currentUserData) {
 		return res.status(404).json({ message: 'User data not found for authenticated user.' });
 	}
-	
+
 	// eslint-disable-next-line
 	const { password: _, ...userWithoutPassword } = currentUserData;
 
 	res.json({ user: userWithoutPassword });
+};
+
+const getUsers = async (_req, res) => {
+	try {
+		const usersDB = await readUsersDB();
+
+		const sanitizedUsers = usersDB.map(user => ({
+			id: user.id,
+			username: user.username,
+			profileImage: user.profileImage,
+		}));
+
+		res.json(sanitizedUsers);
+	} catch (error) {
+		console.error('Error fetching users list:', error);
+		res.status(500).json({ message: 'Failed to fetch users' });
+	}
 };
 
 const updatePassword = async (req, res) => {
@@ -129,5 +146,6 @@ const updatePassword = async (req, res) => {
 module.exports = {
 	login,
 	getMe,
+	getUsers,
 	updatePassword,
 };

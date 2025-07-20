@@ -79,12 +79,62 @@ const findProjectByName = async nameToFind => {
 	return null;
 };
 
+const userCanViewProject = (user, project) => {
+	if (user.role === 'admin') {
+		return true;
+	}
+
+	const projectAccess = project.access || {};
+
+	if (projectAccess.deny?.users?.includes(user.id)) {
+		return false;
+	}
+
+	if (projectAccess.owners?.users?.includes(user.id)) {
+		return true;
+	}
+
+	if (user.teams?.some(team => projectAccess.owners?.teams?.includes(team))) {
+		return true;
+	}
+
+	if (projectAccess.allow?.users?.includes(user.id)) {
+		return true;
+	}
+
+	if (user.teams?.some(team => projectAccess.allow?.teams?.includes(team))) {
+		return true;
+	}
+
+	return false;
+};
+
+const userIsProjectOwner = (user, project) => {
+	if (user.role === 'admin') {
+		return true;
+	}
+
+	const projectAccess = project.access || {};
+
+	if (projectAccess.owners?.users?.includes(user.id)) {
+		return true;
+	}
+
+	if (user.teams?.some(team => projectAccess.owners?.teams?.includes(team))) {
+		return true;
+	}
+
+	return false;
+};
+
 module.exports = {
 	readUsersDB,
 	writeUsersDB,
 	readOpenApiFile,
 	writeOpenApiFile,
 	findProjectByName,
+	userIsProjectOwner,
+	userCanViewProject,
 	getProjectMetaPath,
 	getProjectOpenApiPath,
 };
