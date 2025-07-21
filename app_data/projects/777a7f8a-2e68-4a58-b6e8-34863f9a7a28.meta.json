@@ -1,0 +1,30 @@
+{
+  "id": "777a7f8a-2e68-4a58-b6e8-34863f9a7a28",
+  "name": "Project Nova",
+  "description": "A test project for the UI team.",
+  "serverUrl": "test.com",
+  "links": [],
+  "access": {
+    "owners": {
+      "users": [],
+      "teams": [
+        "leadership"
+      ]
+    },
+    "allow": {
+      "users": [],
+      "teams": [
+        "UI"
+      ]
+    },
+    "deny": {
+      "users": [
+        "3",
+        "2"
+      ]
+    }
+  },
+  "createdBy": "amir.zouerami",
+  "createdAt": "2025-07-20T10:00:00.000Z",
+  "updatedAt": "2025-07-22T19:52:32.858Z"
+}
