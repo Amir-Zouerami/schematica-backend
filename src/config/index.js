@@ -36,7 +36,8 @@ try {
 		fs.mkdirSync(config.projectsPath);
 		console.log(`Created projects directory: ${config.projectsPath}`);
 	}
-} catch (err) {
+}
+catch (err) {
 	console.error('FATAL ERROR: Could not create data directories.', err);
 	process.exit(1);
 }

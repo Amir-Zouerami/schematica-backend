@@ -9,7 +9,8 @@ console.log(`Reading users from: ${usersDBPath}`);
 let users;
 try {
 	users = JSON.parse(fs.readFileSync(usersDBPath, 'utf-8'));
-} catch (e) {
+}
+catch (e) {
 	console.error('Failed to read or parse users-db.json:', e);
 	process.exit(1);
 }
@@ -27,7 +28,8 @@ const updatedUsers = users.map(user => {
 try {
 	fs.writeFileSync(usersDBPath, JSON.stringify(updatedUsers, null, 2), 'utf-8');
 	console.log('Successfully updated users-db.json with hashed passwords.');
-} catch (e) {
+}
+catch (e) {
 	console.error('Failed to write updated users-db.json:', e);
 	process.exit(1);
 }
