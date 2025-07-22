@@ -6,8 +6,8 @@ const router = express.Router();
 
 router.use(authenticateToken);
 
-router.post('/', projectController.createProject);
 router.get('/', projectController.getProjects);
+router.post('/', projectController.createProject);
 router.get('/:projectId', projectController.getProjectById);
 router.put('/:projectId', authorizeProjectOwner, projectController.updateProject);
 router.delete('/:projectId', authorizeProjectOwner, projectController.deleteProject);

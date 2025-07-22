@@ -26,7 +26,7 @@ const authenticateToken = async (req, res, next) => {
 			return res.status(403).json({ message: 'User not found for token' });
 		}
 
-		// eslint-disable-next-line
+		 
 		const { password, ...userWithoutPassword } = userFromToken;
 		req.user = userWithoutPassword;
 		next();
@@ -48,13 +48,16 @@ const authorizeProjectOwner = async (req, res, next) => {
 		if (userIsProjectOwner(req.user, projectMeta)) {
 			req.projectMeta = projectMeta;
 			next();
-		} else {
+		}
+		else {
 			res.status(403).json({ message: 'Forbidden: You do not have permission to perform this action.' });
 		}
-	} catch (error) {
+	}
+	catch (error) {
 		if (error.code === 'ENOENT') {
 			res.status(404).json({ message: 'Project not found.' });
-		} else {
+		}
+		else {
 			console.error('Error in authorizeProjectOwner middleware:', error);
 			res.status(500).json({ message: 'Server error during authorization.' });
 		}

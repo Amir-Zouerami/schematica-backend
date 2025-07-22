@@ -38,14 +38,17 @@ app.get('*', (req, res) => {
 				console.error('Error sending index.html:', err);
 				if (err.status === 404) {
 					res.status(404).send('Frontend entry point (index.html) not found.');
-				} else {
+				}
+				else {
 					res.status(500).send('Error serving frontend.');
 				}
 			}
 		});
-	} else if (req.path.startsWith('/api/')) {
+	}
+	else if (req.path.startsWith('/api/')) {
 		res.status(404).json({ message: 'API endpoint not found' });
-	} else {
+	}
+	else {
 		res.status(404).send('Resource not found.');
 	}
 });
@@ -61,7 +64,8 @@ app.use((err, req, res, next) => {
 			message: err.message || 'An unexpected server error occurred.',
 			...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
 		});
-	} else {
+	}
+	else {
 		next(err);
 	}
 });

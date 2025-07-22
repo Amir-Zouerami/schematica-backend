@@ -85,12 +85,14 @@ const createProject = async (req, res) => {
 		});
 
 		res.status(201).json(projectMetadata);
-	} catch (error) {
+	}
+	catch (error) {
 		console.error('Error creating project:', error);
 
 		if (error.message.includes('projects directory')) {
 			res.status(500).json({ message: 'Server configuration error: Cannot access projects storage.', error: error.message });
-		} else {
+		}
+		else {
 			res.status(500).json({ message: 'Failed to create project', error: error.message });
 		}
 	}
@@ -99,18 +101,20 @@ const createProject = async (req, res) => {
 const getProjects = async (req, res) => {
 	try {
 		const files = await fs.readdir(config.projectsPath);
+
 		const projectPromises = files
-			.filter(file => file.endsWith('.meta.json'))
-			.map(async file => {
-				const filePath = path.join(config.projectsPath, file);
-				try {
-					const content = await fs.readFile(filePath, 'utf-8');
-					return JSON.parse(content);
-				} catch (e) {
-					console.warn(`Could not read or parse project metadata file ${file}: ${e.message}`);
-					return null;
-				}
-			});
+		.filter(file => file.endsWith('.meta.json'))
+		.map(async file => {
+			const filePath = path.join(config.projectsPath, file);
+			try {
+				const content = await fs.readFile(filePath, 'utf-8');
+				return JSON.parse(content);
+			}
+			catch (e) {
+				console.warn(`Could not read or parse project metadata file ${file}: ${e.message}`);
+				return null;
+			}
+		});
 
 		const projects = (await Promise.all(projectPromises)).filter(p => p !== null);
 
@@ -130,14 +134,15 @@ const getProjects = async (req, res) => {
 		finalProjects.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
 		res.json(finalProjects);
-	} catch (error) {
+	}
+	catch (error) {
 		console.error('Error listing projects:', error);
 
 		if (error.code === 'ENOENT' && error.path === config.projectsPath) {
 			console.warn('Projects directory not found, returning empty list.');
-
 			res.json([]);
-		} else {
+		}
+		else {
 			res.status(500).json({ message: 'Failed to list projects', error: error.message });
 		}
 	}
@@ -202,7 +207,8 @@ const updateProject = async (req, res) => {
 
 					if (description !== undefined) {
 						spec.info.description = description || `API documentation for ${trimmedName}`;
-					} else if (!spec.info.description) {
+					}
+					else if (!spec.info.description) {
 						spec.info.description = `API documentation for ${trimmedName}`;
 					}
 				}
@@ -213,18 +219,19 @@ const updateProject = async (req, res) => {
 					if (spec.servers.length > 0) {
 						spec.servers[0].url = updatedProjectMeta.serverUrl;
 						spec.servers[0].description = spec.servers[0].description || 'Primary server';
-					} else {
+					}
+					else {
 						spec.servers.push({ url: updatedProjectMeta.serverUrl, description: 'Primary server' });
 					}
-				} else {
-					if (spec.servers.length > 0) {
-						spec.servers[0].url = '';
-					}
+				}
+				else if (spec.servers.length > 0) {
+					spec.servers[0].url = '';
 				}
 
 				await writeOpenApiFile(projectId, spec);
 				console.log(`OpenAPI spec updated for project ${projectId} due to metadata change.`, { actor: req.user.username });
-			} catch (openApiError) {
+			}
+			catch (openApiError) {
 				console.warn(`Could not update OpenAPI spec for project ${projectId} during metadata update: ${openApiError.message}`, {
 					actor: req.user.username,
 				});
@@ -233,7 +240,8 @@ const updateProject = async (req, res) => {
 
 		console.log(`Project ${projectId} metadata updated.`, { actor: req.user.username });
 		res.status(200).json(updatedProjectMeta);
-	} catch (error) {
+	}
+	catch (error) {
 		console.error(`Error updating project ${projectId}:`, { actor: req.user.username }, error);
 		res.status(500).json({ message: 'Failed to update project', error: error.message });
 	}
@@ -254,7 +262,8 @@ const deleteProject = async (req, res) => {
 		try {
 			await fs.access(metaFilePath);
 			projectExists = true;
-		} catch (e) {
+		}
+		catch (e) {
 			console.error('file does not exist ', e);
 		}
 
@@ -267,7 +276,8 @@ const deleteProject = async (req, res) => {
 
 		console.log(`Project ${projectId} deleted successfully.`, { actor: req.user.username });
 		res.status(200).json({ message: 'Project deleted successfully.' });
-	} catch (error) {
+	}
+	catch (error) {
 		console.error(`Error deleting project ${req.params.projectId}:`, { actor: req.user.username }, error);
 		res.status(500).json({ message: 'Failed to delete project', error: error.message });
 	}
@@ -297,18 +307,21 @@ const getProjectById = async (req, res) => {
 				description: project.description || '',
 				serverUrl: project.serverUrl || '',
 				links: project.links || [],
+				access: project.access,
 				createdBy: project.createdBy,
 				createdAt: project.createdAt,
 				updatedAt: project.updatedAt,
 			});
-		} catch (error) {
+		}
+		catch (error) {
 			if (error.code === 'ENOENT') {
 				return res.status(404).json({ message: 'Project not found.' });
 			}
 
 			throw error;
 		}
-	} catch (error) {
+	}
+	catch (error) {
 		console.error(`Error fetching project by ID ${req.params.projectId}:`, error);
 		res.status(500).json({ message: 'Failed to fetch project details', error: error.message });
 	}
@@ -331,7 +344,8 @@ const getProjectOpenApiSpec = async (req, res) => {
 			if (!userCanViewProject(req.user, projectMeta)) {
 				return res.status(404).json({ message: 'Project not found.' });
 			}
-		} catch (metaError) {
+		}
+		catch (metaError) {
 			return res.status(404).json({ message: 'Project not found.' });
 		}
 
@@ -342,7 +356,8 @@ const getProjectOpenApiSpec = async (req, res) => {
 			const openApiSpec = JSON.parse(content);
 
 			res.json(openApiSpec);
-		} catch (error) {
+		}
+		catch (error) {
 			if (error.code === 'ENOENT') {
 				return res.status(404).json({ message: 'OpenAPI specification not found for this project.' });
 			}
@@ -350,7 +365,8 @@ const getProjectOpenApiSpec = async (req, res) => {
 			console.error(`Error parsing OpenAPI spec for project ID ${projectId}: ${error.message}`);
 			return res.status(500).json({ message: 'Failed to parse OpenAPI specification: File may be corrupted.' });
 		}
-	} catch (error) {
+	}
+	catch (error) {
 		console.error(`Error fetching OpenAPI spec for project ID ${req.params.projectId}:`, error);
 		res.status(500).json({ message: 'Failed to fetch OpenAPI specification', error: error.message });
 	}
@@ -399,7 +415,8 @@ const updateOpenApiSpec = async (req, res) => {
 
 		try {
 			oldSpec = await readOpenApiFile(projectId);
-		} catch (e) {
+		}
+		catch (e) {
 			console.log(`No existing OpenAPI spec found for project ${projectId}, treating as new.`, { actor: userPerformingEdit });
 			oldSpec = { openapi: newSpecDataFromRequest.openapi, info: {}, paths: {}, components: {} };
 		}
@@ -516,7 +533,8 @@ const updateOpenApiSpec = async (req, res) => {
 			data: finalSpecToWrite,
 			projectUpdatedAt: projectMeta.updatedAt,
 		});
-	} catch (error) {
+	}
+	catch (error) {
 		console.error(`Error updating full OpenAPI spec for project ${projectId}:`, error, { actor: userPerformingEdit });
 		res.status(500).json({ message: error.message || 'Failed to update OpenAPI specification.' });
 	}
@@ -565,13 +583,15 @@ const addEndpoint = async (req, res) => {
 			projectMeta.updatedAt = now;
 
 			await fs.writeFile(metaFilePath, JSON.stringify(projectMeta, null, 2));
-		} catch (metaError) {
+		}
+		catch (metaError) {
 			console.warn(`Could not update project meta: ${metaError.message}`, { actor: req.user.username });
 		}
 
 		console.log(`endpoint ${endpointMethod.toUpperCase()} ${endpointPath} added successfully.`, { actor: req.user.username });
 		res.status(201).json({ message: 'Endpoint added successfully.', data: operationToSave });
-	} catch (error) {
+	}
+	catch (error) {
 		console.error(`Error adding endpoint for project ${projectId}:`, error, { actor: req.user.username });
 		res.status(500).json({ message: error.message || 'Failed to add endpoint.' });
 	}
@@ -645,7 +665,8 @@ const updateEndpoint = async (req, res) => {
 
 			spec.paths[newPath] = spec.paths[newPath] || {};
 			spec.paths[newPath][lowerNewMethod] = operationToSave;
-		} else {
+		}
+		else {
 			spec.paths[originalPath][lowerOriginalMethod] = operationToSave;
 		}
 
@@ -658,12 +679,14 @@ const updateEndpoint = async (req, res) => {
 			projectMeta.updatedAt = now;
 
 			await fs.writeFile(metaFilePath, JSON.stringify(projectMeta, null, 2));
-		} catch (metaError) {
+		}
+		catch (metaError) {
 			console.warn(`Could not update project meta: ${metaError.message}`, { actor: req.user.username });
 		}
 
 		res.status(200).json({ message: 'Endpoint updated successfully.', operation: operationToSave });
-	} catch (error) {
+	}
+	catch (error) {
 		console.error(`Error updating endpoint for project ${projectId}:`, { actor: req.user.username }, error);
 		res.status(500).json({ message: error.message || 'Failed to update endpoint.' });
 	}
@@ -700,7 +723,8 @@ const deleteEndpointOperation = async (req, res) => {
 			const projectMeta = JSON.parse(metaContent);
 			projectMeta.updatedAt = now;
 			await fs.writeFile(metaFilePath, JSON.stringify(projectMeta, null, 2));
-		} catch (metaError) {
+		}
+		catch (metaError) {
 			console.warn(
 				`Could not update project metadata updatedAt timestamp for ${projectId} after deleting endpoint: ${metaError.message}`,
 				{
@@ -711,7 +735,8 @@ const deleteEndpointOperation = async (req, res) => {
 
 		console.log(`endpoint ${endpointMethod.toUpperCase()} ${endpointPath} deleted successfully.`, { actor: req.user.username });
 		res.status(200).json({ message: `Endpoint ${lowerMethod.toUpperCase()} ${endpointPath} deleted successfully.` });
-	} catch (error) {
+	}
+	catch (error) {
 		console.error(
 			`Error deleting endpoint ${lowerMethod} ${endpointPath} for project ${projectId}:`,
 			{ actor: req.user.username },
@@ -732,7 +757,7 @@ const addEndpointNote = async (req, res) => {
 
 	const firstSlashIndex = methodPlusPath.indexOf('/');
 
-	if (firstSlashIndex === -1 || firstSlashIndex === 0 || firstSlashIndex === methodPlusPath.length - 1) {
+	if (firstSlashIndex <= 0) {
 		return res.status(400).json({ message: 'Invalid endpoint format in URL. Expected :method/:path (e.g., get/api/users)' });
 	}
 
@@ -749,7 +774,8 @@ const addEndpointNote = async (req, res) => {
 			if (!userCanViewProject(req.user, projectMeta)) {
 				return res.status(404).json({ message: 'Project not found.' });
 			}
-		} catch (metaError) {
+		}
+		catch (metaError) {
 			return res.status(404).json({ message: 'Project not found.' });
 		}
 
@@ -779,7 +805,8 @@ const addEndpointNote = async (req, res) => {
 
 		console.log(`Note for ${method.toUpperCase()} ${path} added successfully.`, { actor: req.user.username });
 		res.status(201).json(newNote);
-	} catch (error) {
+	}
+	catch (error) {
 		console.error(`Error adding note to endpoint ${method} ${path} for project ${projectId}:`, { actor: req.user.username }, error);
 		res.status(500).json({ message: error.message || 'Failed to add note.' });
 	}
@@ -789,12 +816,14 @@ const deleteEndpointNote = async (req, res) => {
 	const { projectId, methodPlusPath, noteIndex: noteIndexStr } = req.params;
 
 	const noteIndex = parseInt(noteIndexStr, 10);
+
 	if (isNaN(noteIndex) || noteIndex < 0) {
 		return res.status(400).json({ message: 'Invalid note index.' });
 	}
 
 	const firstSlashIndex = methodPlusPath.indexOf('/');
-	if (firstSlashIndex === -1 || firstSlashIndex === 0 || firstSlashIndex === methodPlusPath.length - 1) {
+
+	if (firstSlashIndex <= 0) {
 		return res.status(400).json({ message: 'Invalid endpoint format in URL.' });
 	}
 
@@ -813,7 +842,8 @@ const deleteEndpointNote = async (req, res) => {
 			if (!userCanViewProject(req.user, projectMeta)) {
 				return res.status(404).json({ message: 'Project not found.' });
 			}
-		} catch (metaError) {
+		}
+		catch (metaError) {
 			return res.status(404).json({ message: 'Project not found.' });
 		}
 
@@ -849,7 +879,8 @@ const deleteEndpointNote = async (req, res) => {
 		});
 
 		res.status(200).json({ message: 'Note deleted successfully.' });
-	} catch (error) {
+	}
+	catch (error) {
 		console.error(`Error deleting note from endpoint ${method} ${path} for project ${projectId}:`, error);
 		res.status(500).json({ message: error.message || 'Failed to delete note.' });
 	}

@@ -3,6 +3,7 @@ const fs = require('fs/promises');
 const config = require('../config');
 
 const usersDBPath = path.join(__dirname, '..', '..', 'app_data', 'users', 'users-db.json');
+const teamsDBPath = path.join(__dirname, '..', '..', 'app_data', 'teams', 'teams-db.json');
 
 const getProjectMetaPath = projectId => path.join(config.projectsPath, `${projectId}.meta.json`);
 const getProjectOpenApiPath = projectId => path.join(config.projectsPath, `${projectId}.openapi.json`);
@@ -11,7 +12,8 @@ const readUsersDB = async () => {
 	try {
 		const jsonData = await fs.readFile(usersDBPath, 'utf-8');
 		return JSON.parse(jsonData);
-	} catch (error) {
+	}
+	catch (error) {
 		console.error('Error reading users-db.json:', error);
 
 		if (error.code === 'ENOENT') {
@@ -24,10 +26,38 @@ const readUsersDB = async () => {
 
 const writeUsersDB = async data => {
 	try {
-		await fs.writeFile(usersDBPath, JSON.stringify(data, null, 2), 'utf-8');
+		await fs.writeFile(usersDBPath, JSON.stringify(data, null, 4), 'utf-8');
 		console.log('users-db.json has been updated.');
-	} catch (error) {
+	}
+	catch (error) {
 		console.error('Error writing to users-db.json:', error);
+		throw error;
+	}
+};
+
+const readTeamsDB = async () => {
+	try {
+		const jsonData = await fs.readFile(teamsDBPath, 'utf-8');
+		return JSON.parse(jsonData);
+	}
+	catch (error) {
+		if (error.code === 'ENOENT') {
+			console.warn('teams-db.json not found, returning empty array.');
+			return [];
+		}
+
+		console.error('Error reading teams-db.json:', error);
+		throw error;
+	}
+};
+
+const writeTeamsDB = async data => {
+	try {
+		await fs.writeFile(teamsDBPath, JSON.stringify(data, null, 4), 'utf-8');
+		console.log('teams-db.json has been updated.');
+	}
+	catch (error) {
+		console.error('Error writing to teams-db.json:', error);
 		throw error;
 	}
 };
@@ -38,7 +68,8 @@ const readOpenApiFile = async projectId => {
 	try {
 		const content = await fs.readFile(filePath, 'utf-8');
 		return JSON.parse(content);
-	} catch (error) {
+	}
+	catch (error) {
 		if (error.code === 'ENOENT') {
 			throw new Error('OpenAPI file not found.');
 		}
@@ -48,7 +79,7 @@ const readOpenApiFile = async projectId => {
 
 const writeOpenApiFile = async (projectId, specData) => {
 	const filePath = getProjectOpenApiPath(projectId);
-	await fs.writeFile(filePath, JSON.stringify(specData, null, 2));
+	await fs.writeFile(filePath, JSON.stringify(specData, null, 4));
 };
 
 const findProjectByName = async nameToFind => {
@@ -68,11 +99,13 @@ const findProjectByName = async nameToFind => {
 				if (project.name.toLowerCase() === nameToFind.toLowerCase()) {
 					return project;
 				}
-			} catch (e) {
+			}
+			catch (e) {
 				console.warn(`Could not read or parse project metadata file ${metaFile} during name check: ${e.message}`);
 			}
 		}
-	} catch (e) {
+	}
+	catch (e) {
 		console.error(`Error reading projects directory for name check: ${e.message}`);
 		throw e;
 	}
@@ -129,7 +162,9 @@ const userIsProjectOwner = (user, project) => {
 
 module.exports = {
 	readUsersDB,
+	readTeamsDB,
 	writeUsersDB,
+	writeTeamsDB,
 	readOpenApiFile,
 	writeOpenApiFile,
 	findProjectByName,

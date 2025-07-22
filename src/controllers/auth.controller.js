@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
-const { writeUsersDB, readUsersDB } = require('../utils/general');
+const { writeUsersDB, readUsersDB, readTeamsDB } = require('../utils/general');
 
 const saltRounds = Number(process.env.SALT_ROUNDS) || 10;
 
@@ -41,7 +41,7 @@ const login = async (req, res) => {
 
 		const token = jwt.sign(userPayloadForToken, config.jwtSecret, { expiresIn: process.env.JWT_EXP_TIME || '1h' });
 
-		// eslint-disable-next-line
+		 
 		const { password: _, ...userWithoutPassword } = user;
 
 		console.log(`Login successful for ${username}. Token generated.`);
@@ -53,8 +53,6 @@ const login = async (req, res) => {
 };
 
 const getMe = async (req, res) => {
-	console.log(`/api/auth/me called for user: ${req.user.username}`);
-
 	const usersDB = await readUsersDB();
 	const currentUserData = usersDB.find(u => u.id === req.user.id);
 
@@ -62,7 +60,7 @@ const getMe = async (req, res) => {
 		return res.status(404).json({ message: 'User data not found for authenticated user.' });
 	}
 
-	// eslint-disable-next-line
+	 
 	const { password: _, ...userWithoutPassword } = currentUserData;
 
 	res.json({ user: userWithoutPassword });
@@ -79,7 +77,8 @@ const getUsers = async (_req, res) => {
 		}));
 
 		res.json(sanitizedUsers);
-	} catch (error) {
+	}
+	catch (error) {
 		console.error('Error fetching users list:', error);
 		res.status(500).json({ message: 'Failed to fetch users' });
 	}
@@ -98,6 +97,7 @@ const updatePassword = async (req, res) => {
 	if (newPassword.length < 8) {
 		return res.status(400).json({ message: 'New password must be at least 8 characters long' });
 	}
+
 	if (currentPassword === newPassword) {
 		return res.status(400).json({ message: 'New password cannot be the same as the current password' });
 	}
@@ -133,9 +133,11 @@ const updatePassword = async (req, res) => {
 
 			try {
 				await writeUsersDB(usersDB);
+
 				console.log(`Password updated successfully for user ID ${userId} --> ${req.user.username}`);
 				res.json({ message: 'Password updated successfully' });
-			} catch (writeError) {
+			}
+			catch (writeError) {
 				console.error('Failed to write updated usersDB to file:', writeError);
 				res.status(500).json({ message: 'Failed to save new password' });
 			}
@@ -143,9 +145,23 @@ const updatePassword = async (req, res) => {
 	});
 };
 
+const getTeams = async (_req, res) => {
+	try {
+		const teams = await readTeamsDB();
+		teams.sort((a, b) => a.name.localeCompare(b.name));
+
+		res.json(teams);
+	}
+	catch (error) {
+		console.error('Error fetching teams list:', error);
+		res.status(500).json({ message: 'Failed to fetch teams' });
+	}
+};
+
 module.exports = {
 	login,
 	getMe,
 	getUsers,
+	getTeams,
 	updatePassword,
 };

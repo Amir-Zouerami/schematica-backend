@@ -8,7 +8,8 @@ const getReferencedObject = (ref, rootSpec) => {
 	for (const segment of path) {
 		if (current && typeof current === 'object' && Object.prototype.hasOwnProperty.call(current, segment)) {
 			current = current[segment];
-		} else {
+		}
+		else {
 			return null;
 		}
 	}
@@ -88,7 +89,8 @@ function inlineRefsRecursive(currentObject, rootSpec, visitedRefs = new Set()) {
 			const inlinedReferencedObject = inlineRefsRecursive(structuredClone(referencedObject), rootSpec, new Set(visitedRefs));
 			visitedRefs.delete(refPath);
 			return inlinedReferencedObject;
-		} else {
+		}
+		else {
 			console.warn(`[Inliner] Could not resolve $ref: ${refPath}`);
 			visitedRefs.delete(refPath);
 			return currentObject;
