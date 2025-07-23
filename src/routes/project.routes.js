@@ -1,10 +1,12 @@
 const express = require('express');
+const logRequest = require('../middleware/log.middleware');
 const projectController = require('../controllers/project.controller');
 const { authenticateToken, authorizeProjectOwner } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
 router.use(authenticateToken);
+router.use(logRequest);
 
 router.get('/', projectController.getProjects);
 router.post('/', projectController.createProject);
