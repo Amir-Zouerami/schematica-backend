@@ -3,7 +3,7 @@ const logRequest = (req, _res, next) => {
 		return next();
 	}
 
-	const timestamp = new Date().toLocaleString();
+	const timestamp = new Date().toLocaleString('en-GB');
 	const operatingSystem = req.headers['sec-ch-ua-platform']?.replace(/"/g, '') || 'Unknown';
 
 	const userInfo = {

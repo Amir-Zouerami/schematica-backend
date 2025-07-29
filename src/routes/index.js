@@ -7,8 +7,8 @@ const logRequest = require('../middleware/log.middleware');
 
 const router = express.Router();
 
-router.use('/auth', logRequest, authRoutes);
-router.use('/projects', logRequest, projectRoutes);
+router.use('/auth', authRoutes);
+router.use('/projects', projectRoutes);
 router.use('/admin', authenticateToken, logRequest, adminRoutes);
 
 router.get('/', (_req, res) => {
