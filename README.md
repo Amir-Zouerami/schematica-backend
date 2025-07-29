@@ -14,7 +14,7 @@ The goal of this project was to automate a lot of the hassle of maintaining Open
 
 As mentioned in the [✨ Features & Quirks](#-features--quirks) section, Schematica is a small, local, on-disk solution for collaboration between backend and frontend teams.
 
-Everything is designed to be very simple and manual — which is the most important tradeoff for this solution. I'm simply not a fan of complicated solutions for simple problems. I believe Schematica's simplistic approach to collaboration, though burdensome in a few cases, is the ideal solution for a tool meant to stay out of the way.
+Everything is designed to be very simple and sometimes manual — which is the most important tradeoff for this solution. I'm simply not a fan of complicated solutions for simple problems. I believe Schematica's simplistic approach to collaboration, though burdensome in a few cases, is the ideal solution for a tool meant to stay out of the way.
 
 </br>
 
@@ -35,43 +35,78 @@ Each project is split into two JSON files:
 
 Both files are stored locally in the Express.js backend (`/app_data/projects`). This is because Schematica was designed as an internal tool without any dependency on external systems. It’s designed to be a very simple in-house tool that can be spun up quickly in any environment — no need for a database at all.
 
+#### Users
+
 The same direct on-disk design applies to authentication. In `app_data/users`, there is a `users-db.json` file containing user data. Here's a sample:
 
 ```json
 [
-	{
-		"id": "1",
-		"username": "amir.zouerami",
-		"password": "$2b$10$.N89DXoPtwwgW3nHbrNV9.Rr.nUlTgVLnJvIqW3RFd8SjvEnBX.yK",
-		"role": "backend",
-		"profileImage": "/profile-pictures/amir.zouerami.png",
-		"accessList": {
-			"read": true,
-			"write": true,
-			"update": true,
-			"delete": true
-		}
-	},
-	{
-		"id": "2",
-		"username": "brooklyn.lee",
-		"password": "$2b$10$fBUycb7WiVnev3eNjwytyeLn1QbzwMhWI/cR1Q0kOrSHdogoWKz9i",
-		"role": "UI",
-		"profileImage": "/profile-pictures/brooklyn.lee.png",
-		"accessList": {
-			"read": true,
-			"write": false,
-			"update": false,
-			"delete": false
-		}
-	}
+    {
+        "id": "1",
+        "username": "amir.zouerami",
+        "password": "$2b$10$6la41cxH3Cs44fa5gAqYHOAJo7/iNM4o7OZ49BphtvekC/A96.CvS",
+        "role": "admin",
+        "teams": [
+            "backend",
+            "leadership"
+        ],
+        "profileImage": "/profile-pictures/amir.zouerami.png"
+    },
+    {
+        "id": "2",
+        "username": "brooklyn.lee",
+        "password": "$2b$10$T7.TMTPwYR/nmelcu2P71OkgUW5ZZes5mMAxo6AWUjwJ45t1R6pJe",
+        "role": "member",
+        "teams": [
+            "UI"
+        ],
+        "profileImage": "/profile-pictures/brooklyn.lee.png"
+    },
+    {
+        "id": "3",
+        "username": "charlie.davis",
+        "password": "$2b$10$lfyiJidQbu./gCzO2yCoWegP2/ub/Gxn6KHBx/hRZkqcsE79tteB6",
+        "role": "member",
+        "teams": [
+            "UI"
+        ],
+        "profileImage": "/profile-pictures/charlie.davis.png"
+    }
 ]
 
 ```
 
-Creating users and their passwords is a matter of defining them manually in this JSON file and running `npm run prepare` to hash their passwords. While creating a user initially, you must store their password as plain text in the `"password"` field and then run the _prepare_ script to hash them. It will skip already hashed users.
+Creating users and their passwords can be done in 2 ways:
+- Using the admin panel (via the UI). This takes care of everything else.
+- Defining users manually in this JSON file, with passwords as plain text, and running `npm run prepare` to hash their passwords skipping already hashed users. If you do not have access to UI for some reason, this is the way to go. 
 
 ⚠️ Important: This script modifies the original `users-db.json` file. Back up your user file before running it.
+
+
+#### Roles
+
+As displayed in the example above, each user may have one of these roles:
+
+- admin: have access to everything including the admin panel for creating teams, users, etc. Access control rules do not apply to them.
+- member: normal users who follow access control rules.
+
+
+#### Teams
+
+In `app_data/teams` you can find a sample `teams-db.json` which holds all the teams defined in the system. The `teams` property in `users-db.json` must match one of these teams. Teams are primarily used for defining access control rules.
+
+
+</br>
+
+### 🕒 Access Control
+
+Users who create a project, are that project's owners. Owners get to set access control rules for their projects and tweak who gets to see the project, edit it, etc via the "Manage Access" button in project details page. There are 3 different categories of access control:
+
+- Project Owners: owners have write/edit access.
+- General Access: read access for viewing a project.
+- Denied Users: exceptions used for individuals to exclude them from a team access.
+
+The access may be given on individual/team basis.
 
 </br>
 
@@ -178,7 +213,7 @@ This will generate a production build and automatically move it to the backend's
 
 This project was built as a personal/internal tool. It works great for its intended use — a local-first, zero-dependency API documentation and collaboration system.
 
-However, if you plan to run it in production or expose it publicly:
+However, if you plan to run it in production or expose it publicly: First of all, don't! However, if you insist:
 
 - Harden the server
 - Add much more extensive logging
