@@ -1,6 +1,7 @@
+const fs = require('fs').promises;
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const { readTeamsDB, writeTeamsDB, readUsersDB, writeUsersDB } = require('../utils/general');
+const { readTeamsDB, writeTeamsDB, readUsersDB, writeUsersDB, cleanupFile } = require('../utils/general');
 
 const createTeam = async (req, res) => {
 	try {
@@ -132,6 +133,8 @@ const getAllUsers = async (req, res) => {
 };
 
 const createUser = async (req, res) => {
+	const tempFilePath = req.file?.path;
+
 	try {
 		const { username, password, role, teams } = req.body;
 
@@ -147,6 +150,17 @@ const createUser = async (req, res) => {
 		}
 
 		const hashedPassword = await bcrypt.hash(password, 10);
+		let finalProfileImagePath = '';
+
+		if (tempFilePath) {
+			const extension = path.extname(tempFilePath);
+			const finalFilename = `${username.toLowerCase()}${extension}`;
+			const finalFilePath = path.join(path.dirname(tempFilePath), finalFilename);
+
+			await fs.rename(tempFilePath, finalFilePath);
+
+			finalProfileImagePath = `/profile-pictures/${finalFilename}`;
+		}
 
 		const newUser = {
 			id: uuidv4(),
@@ -154,7 +168,7 @@ const createUser = async (req, res) => {
 			password: hashedPassword,
 			role,
 			teams: teams || [],
-			profileImage: req.profileImagePath || '',
+			profileImage: finalProfileImagePath,
 		};
 
 		users.push(newUser);
@@ -164,13 +178,22 @@ const createUser = async (req, res) => {
 		res.status(201).json(userForResponse);
 	}
 	catch (error) {
-		console.error(`Failed creating a user with username: ${req.body?.username}`, { actor: req.user?.username, userToBeMade: req.body });
+		console.error(`Failed creating a user with username: ${req.body?.username}`, {
+			actor: req.user?.username,
+			userToBeMade: req.body,
+		});
 
 		res.status(500).json({ message: 'Failed to create user.' });
+	}
+	finally {
+		await cleanupFile(tempFilePath);
 	}
 };
 
 const updateUser = async (req, res) => {
+	const tempFilePath = req.file?.path;
+	let oldProfileImagePath = '';
+
 	try {
 		const { userId } = req.params;
 		const { role, teams } = req.body;
@@ -182,27 +205,41 @@ const updateUser = async (req, res) => {
 			return res.status(404).json({ message: 'User not found.' });
 		}
 
-		if (role) {
-			users[userIndex].role = role;
-		}
+		const userToUpdate = users[userIndex];
 
-		if (teams) {
-			users[userIndex].teams = teams;
-		}
+		if (role) userToUpdate.role = role;
+		if (teams) userToUpdate.teams = Array.isArray(teams) ? teams : [teams];
 
-		if (req.profileImagePath) {
-			users[userIndex].profileImage = req.profileImagePath;
+		if (tempFilePath) {
+			if (userToUpdate.profileImage) {
+				oldProfileImagePath = path.join(__dirname, '..', '..', 'public', userToUpdate.profileImage);
+			}
+
+			const extension = path.extname(tempFilePath);
+			const finalFilename = `${userToUpdate.username.toLowerCase()}${extension}`;
+			const finalFilePath = path.join(path.dirname(tempFilePath), finalFilename);
+
+			await fs.rename(tempFilePath, finalFilePath);
+
+			userToUpdate.profileImage = `/profile-pictures/${finalFilename}`;
 		}
 
 		await writeUsersDB(users);
 
-		const { password, ...updatedUser } = users[userIndex];
+		if (oldProfileImagePath) {
+			await cleanupFile(oldProfileImagePath);
+		}
+
+		const { password, ...updatedUser } = userToUpdate;
 		res.json(updatedUser);
 	}
 	catch (error) {
 		console.error(`Failed updating the user: ${req.params?.userId}`, { actor: req.user.username });
 
 		res.status(500).json({ message: 'Failed to update user.' });
+	}
+	finally {
+		await cleanupFile(tempFilePath);
 	}
 };
 

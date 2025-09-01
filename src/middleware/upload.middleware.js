@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const profilePicturesPath = path.join(__dirname, '..', '..', 'public', 'profile-pictures');
 
@@ -13,11 +14,11 @@ const storage = multer.diskStorage({
 		cb(null, profilePicturesPath);
 	},
 	filename: (req, file, cb) => {
-		const username = req.body.username;
+		const randomBytes = crypto.randomBytes(16).toString('hex');
 		const extension = path.extname(file.originalname);
-		const finalFilename = `${username}${extension}`.toLowerCase();
-		req.profileImagePath = `/profile-pictures/${finalFilename}`;
-		cb(null, finalFilename);
+		const tempFilename = `temp-${randomBytes}${extension}`;
+        
+		cb(null, tempFilename);
 	},
 });
 

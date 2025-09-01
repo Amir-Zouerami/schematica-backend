@@ -160,7 +160,26 @@ const userIsProjectOwner = (user, project) => {
 	return false;
 };
 
+const cleanupFile = async filePath => {
+	if (!filePath) {
+		return;
+	}
+
+	try {
+		await fs.access(filePath);
+		await fs.unlink(filePath);
+		console.log(`Successfully cleaned up file: ${filePath}`);
+	}
+	catch (error) {
+		if (error.code !== 'ENOENT') {
+			console.error(`Error during file cleanup for ${filePath}:`, error);
+		}
+	}
+};
+
+
 module.exports = {
+	cleanupFile,
 	readUsersDB,
 	readTeamsDB,
 	writeUsersDB,

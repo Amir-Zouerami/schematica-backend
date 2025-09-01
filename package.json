@@ -1,6 +1,6 @@
 {
 	"name": "schematica-api-docs-server",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "the backend for Schematica API docs platform",
 	"main": "src/server.js",
 	"scripts": {
