@@ -1,3 +1,4 @@
+const path = require('path');
 const fs = require('fs').promises;
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
