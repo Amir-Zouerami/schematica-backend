@@ -1,3 +1,6 @@
+⚠️ This project is very old and lacks many features. The original source code was written years ago. The new rewrite is Nest.js is what you should use: https://github.com/Amir-Zouerami/schematica-api
+
+
 # 📘 Schematica: Modern Collaborative API Documentation Platform		
 
 ![schematica-cover-with-text](https://github.com/user-attachments/assets/e73d72fd-3d32-4300-b8c7-b023c3e687ec)
