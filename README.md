@@ -1,6 +1,6 @@
 <br />
 
-> ⚠️ This project is very old and lacks many features. The original source code was written years ago. The new rewrite is Nest.js is what you should use: https://github.com/Amir-Zouerami/schematica-api
+> ⚠️ This project is very old and lacks many features. The original source code was written years ago. The new rewrite (v2.0) in Nest.js is what you should use: https://github.com/Amir-Zouerami/schematica-api
 
 <br />
 
